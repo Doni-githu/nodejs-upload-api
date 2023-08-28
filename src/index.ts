@@ -2,6 +2,8 @@ import express from "express"
 import mongoose from "mongoose"
 import UserRoutes from "./routes/user"
 import FileRoutes from "./routes/post"
+import dotenv from "dotenv"
+dotenv.config()
 const app = express()
 
 
@@ -12,7 +14,7 @@ app.use('/api/user', UserRoutes)
 app.use('/api/file', FileRoutes)
 
 function Run() {
-    mongoose.connect('mongodb://localhost:27017/upload')
+    mongoose.connect(String(process.env.MONGO_URI))
         .then((res) => console.log('Mongo DB connted'))
         .catch((errr) => console.log(errr))
     const PORT = process.env.PORT || 8000
