@@ -20,7 +20,7 @@ function Run() {
         .catch((errr) => console.log(errr));
     const PORT = process.env.PORT || 8000;
     app.listen(PORT, () => {
-        console.log('Server running on port ');
+        console.log(`Server running on port ${PORT}`);
     });
 }
 Run();
