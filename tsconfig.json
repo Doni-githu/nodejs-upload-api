@@ -5,7 +5,6 @@
         "outDir": "dist",
         "strict": true,
         "esModuleInterop": true,
-        "baseUrl": "."
     },
     "include": [
         "src/**/*.ts"

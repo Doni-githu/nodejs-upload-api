@@ -1,24 +1,30 @@
 import { Router } from "express";
-import { IUser } from "src/interfaces/types";
-import User from "src/schemas/user";
+import { IUser } from "../interfaces/types";
+import User from "../schemas/user";
 import bcrypt from "bcrypt"
-import { JWT } from "src/utils";
+import { JWT } from "../utils";
 
 const router = Router()
 
 
 router.post('/register', async (req, res) => {
     const user = req.body as Omit<IUser, "_id" | "__v">
-    
-    const areUserEmailHas = await User.findOne({email: user.email})
-    if(areUserEmailHas){
-        res.status(400).json({message: 'bu elektron pochta allaqachon mavjud'})
+
+
+    if(!user.email || !user.password || !user.username){
+        res.status(400).json({"message": "Username, Email and Password are required fields"})
+        return
+    }
+
+    const areUserEmailHas = await User.findOne({ email: user.email })
+    if (areUserEmailHas) {
+        res.status(400).json({ message: 'bu elektron pochta allaqachon mavjud' })
         return
     }
 
     const hashedPassword = await bcrypt.hash(user.password, 10)
 
-    const userData:Omit<IUser, "_id" | "__v"> = {
+    const userData: Omit<IUser, "_id" | "__v"> = {
         ...user,
         password: hashedPassword
     }
@@ -27,17 +33,26 @@ router.post('/register', async (req, res) => {
     const token = JWT.encode(result._id)
     res.status(201).json({
         "token": token,
-        "user": result
+        "user": {
+            "username": result?.username,
+            "email": result?.email,
+            "_id": result?._id
+        }
     })
 })
 
 router.post('/login', async (req, res) => {
     const user = req.body as Pick<IUser, "email" | "password">
 
-    const isExistUser = await User.findOne({email: user.email})
-    
+    if(!user.email || !user.password){
+        res.status(400).json({"message": "Email and Password are required fields"})
+        return
+    }
 
-    if(!isExistUser){
+    const isExistUser = await User.findOne({ email: user.email })
+
+
+    if (!isExistUser) {
         res.status(404).json({
             message: 'Foydalinuvchi topilmadi'
         })
@@ -47,7 +62,7 @@ router.post('/login', async (req, res) => {
 
     const isRightPassword = await bcrypt.compare(user.password, isExistUser.password)
 
-    if(!isRightPassword){
+    if (!isRightPassword) {
         res.status(400).json({
             message: 'Parol xato terilgan'
         })
@@ -57,14 +72,27 @@ router.post('/login', async (req, res) => {
     const token = JWT.encode(isExistUser._id)
     res.status(200).json({
         "token": token,
-        "user": isExistUser
+        "user": {
+            "username": isExistUser.username,
+            "email": isExistUser.email,
+            "_id": isExistUser._id
+        }
     })
 })
 
-router.get('/get', async (req, res) => {
-    const token = req.headers.authorization?.replace('Token ', '')
-    const result = JWT.decode(String(token))
-    console.log(result?.payload);
+router.get('/', async (req, res) => {
+    try{
+        const token = req.headers.authorization?.replace('Token ', '')
+        const result = JWT.decode(String(token))
+        const user = await User.findById(result.userId)
+        res.status(200).send({
+            "username": user?.username,
+            "email": user?.email,
+            "_id": user?._id
+        })
+    }catch(error){
+        res.status(400).json({"message": "Xato token yubordiz"})
+    }
 })
 
 export default router
