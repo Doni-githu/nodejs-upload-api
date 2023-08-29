@@ -2,10 +2,11 @@ import { Router } from "express";
 import File from "../schemas/file.js"
 import multer from "multer";
 import { v4 as uuid4 } from "uuid"
-import path, {dirname} from "path"
+import path, { dirname } from "path"
 import fs from "fs"
-import {fileURLToPath} from "url"
+import { fileURLToPath } from "url"
 import { JWT } from "../utils.js";
+const BASE_URL = process.env.BASE_URL
 
 
 const __filename = fileURLToPath(import.meta.url)
@@ -39,14 +40,14 @@ router.post('/upload', upload.array('file'), async (req, res) => {
         const files = req.files
         const result2 = files.map(item => ({
             title: item.originalname,
-            src: `http://localhost:8000/${item.filename}`,
+            src: `${BASE_URL}/${item.filename}`,
             type: item.mimetype,
             user: result.userId
         }))
 
         const result3 = result2.map(async (item) => {
             const newItem = await File.create(item)
-            return newItem
+            return newItem.populate('user', 'username _id email')
         })
         res.status(201).json(result3)
     } catch (error) {
@@ -58,13 +59,13 @@ router.post('/upload', upload.array('file'), async (req, res) => {
 
 
 router.get('/all', async (req, res) => {
-    const files = await File.find().populate('user')
+    const files = await File.find().populate('user', '_id username email')
     res.status(200).json(files)
 })
 
 router.get('/:id', async (req, res) => {
     const id = Number(req.params.id)
-    const file = await File.findById(id).populate('user')
+    const file = await File.findById(id).populate('user', '_id username email')
     if (!file) {
         res.status(404).json({ message: "File not found" })
         return
@@ -84,7 +85,7 @@ router.delete('/delete/:id', async (req, res, next) => {
         res.status(404).json({ message: "File not found" })
         return
     }
-    let pathToFile = String(oldFile?.src.replace('http://localhost:8000/', ''))
+    let pathToFile = String(oldFile?.src.replace(`${BASE_URL}/`, ''))
     fs.rm(path.join(__dirname, '..', '..', 'public', pathToFile), (error,) => {
         if (error) {
             console.log(error);
@@ -106,7 +107,7 @@ router.put('/edit/:id/file', upload.single('file'), async (req, res, next) => {
         res.status(404).json({ message: "File not found" })
         return
     }
-    const pathToFile = String(oldFile?.src.replace('http://localhost:8000/', ''))
+    const pathToFile = String(oldFile?.src.replace(`${BASE_URL}/`, ''))
     fs.rm(path.join(__dirname, '..', '..', 'public', pathToFile), (error) => {
         if (error) {
             console.log(error);
@@ -114,9 +115,9 @@ router.put('/edit/:id/file', upload.single('file'), async (req, res, next) => {
     })
     const updatedFile = await File.findByIdAndUpdate(req.params.id, {
         type: file?.mimetype,
-        src: `http://localhost:8000/${file?.filename}`,
+        src: `${BASE_URL}/${file?.filename}`,
         title: file?.originalname
-    }, { new: true }).populate('user')
+    }, { new: true }).populate('user', '_id username email')
     res.status(202).json(updatedFile)
 })
 
@@ -126,7 +127,14 @@ router.put('/edit/:id/title', async (req, res, next) => {
         res.status(404).json({ message: "Not found" })
         return
     }
-    const updatedFile = await File.findByIdAndUpdate(req.params.id, { title: req.body.title }, { new: true })
+    const updatedFile = await File.findByIdAndUpdate(
+        req.params.id,
+        {
+            title: req.body.title
+        },
+        {
+            new: true
+        }).populate('user', '_id username email')
     res.status(202).json(updatedFile)
 })
 
