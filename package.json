@@ -12,7 +12,8 @@
     "jwt": "*",
     "mongoose": "*",
     "multer": "*",
-    "uuid": "*"
+    "uuid": "*",
+    "node-waf": "*"
   },
   "devDependencies": {
     "@types/bcrypt": "*",
