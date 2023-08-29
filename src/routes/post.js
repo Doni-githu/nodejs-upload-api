@@ -2,12 +2,15 @@ import { Router } from "express";
 import File from "../schemas/file.js"
 import multer from "multer";
 import { v4 as uuid4 } from "uuid"
-import path from "path"
+import path, {dirname} from "path"
 import fs from "fs"
-
+import {fileURLToPath} from "url"
 import { JWT } from "../utils.js";
-import User from "../schemas/user.js";
-import auth from "../middlewares/auth.js";
+
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+
 const router = Router()
 const storage = multer.diskStorage({
     filename: (req, file, callback) => {
