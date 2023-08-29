@@ -1,7 +1,7 @@
 import express from "express"
 import mongoose from "mongoose"
-import UserRoutes from "./routes/user"
-import FileRoutes from "./routes/post"
+import UserRoutes from "./routes/user.js"
+import FileRoutes from "./routes/post.js"
 import dotenv from "dotenv"
 dotenv.config()
 const app = express()

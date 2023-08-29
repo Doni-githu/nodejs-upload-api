@@ -1,14 +1,13 @@
-import { Router, Request, Response, NextFunction } from "express";
-import File from "../schemas/file"
+import { Router } from "express";
+import File from "../schemas/file.js"
 import multer from "multer";
 import { v4 as uuid4 } from "uuid"
 import path from "path"
-import { IFileBody, IRequest } from "../interfaces/types";
 import fs from "fs"
 
-import { JWT } from "../utils";
-import User from "../schemas/user";
-import auth from "../middlewares/auth";
+import { JWT } from "../utils.js";
+import User from "../schemas/user.js";
+import auth from "../middlewares/auth.js";
 const router = Router()
 const storage = multer.diskStorage({
     filename: (req, file, callback) => {
@@ -34,7 +33,7 @@ router.post('/upload', upload.array('file'), async (req, res) => {
         const token = req.headers.authorization.replace('Token ', '')
         let result = JWT.decode(token)
 
-        const files = req.files as IFileBody[]
+        const files = req.files
         const result2 = files.map(item => ({
             title: item.originalname,
             src: `http://localhost:8000/${item.filename}`,

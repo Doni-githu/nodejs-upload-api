@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "dependencies": {
     "bcrypt": "*",
     "dotenv": "*",
@@ -25,10 +26,10 @@
     "typescript": "*"
   },
   "scripts": {
-    "dev": "nodemon ./src/index.ts",
-    "start": "node dist/index.js",
-    "build": "tsc"
+    "dev": "nodemon ./src/index.js",
+    "start": "node ./src/index.js",
+    "build": "yarn"
   },
-  "author": "",
+  "author": "Doniyor Doniyorov",
   "license": "ISC"
 }

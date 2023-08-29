@@ -1,14 +1,13 @@
 import { Router } from "express";
-import { IUser } from "../interfaces/types";
-import User from "../schemas/user";
+import User from "../schemas/user.js";
 import bcrypt from "bcrypt"
-import { JWT } from "../utils";
+import { JWT } from "../utils.js";
 
 const router = Router()
 
 
 router.post('/register', async (req, res) => {
-    const user = req.body as Omit<IUser, "_id" | "__v">
+    const user = req.body
 
 
     if(!user.email || !user.password || !user.username){
@@ -24,7 +23,7 @@ router.post('/register', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(user.password, 10)
 
-    const userData: Omit<IUser, "_id" | "__v"> = {
+    const userData = {
         ...user,
         password: hashedPassword
     }
@@ -42,7 +41,7 @@ router.post('/register', async (req, res) => {
 })
 
 router.post('/login', async (req, res) => {
-    const user = req.body as Pick<IUser, "email" | "password">
+    const user = req.body
 
     if(!user.email || !user.password){
         res.status(400).json({"message": "Email and Password are required fields"})
