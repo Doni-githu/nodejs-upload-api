@@ -99,7 +99,7 @@ router.post('/login', async (req, res) => {
 
 /**
  * @swagger
- * /api/user/login:
+ * /api/user:
  *   post:
  *     summary: Get user
  *     description: To get user to must have token in headers Authorization\nWith format `Token {token}`.
