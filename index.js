@@ -1,11 +1,16 @@
-import express from "express"
+import express, { application } from "express"
 import mongoose from "mongoose"
 import UserRoutes from "./routes/user.js"
 import FileRoutes from "./routes/post.js"
 import dotenv from "dotenv"
 import cors from "cors"
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpec from './swagger.js';
+
 dotenv.config()
 const app = express()
+
+
 
 
 app.use(express.json())
@@ -16,6 +21,7 @@ app.use(cors({
     exposedHeaders: '*',
     credentials: 'true'
 }))
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
 app.use('/api/user', UserRoutes)
 app.use('/api/file', FileRoutes)

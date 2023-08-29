@@ -26,7 +26,16 @@ const storage = multer.diskStorage({
 const upload = multer({
     storage: storage,
 })
-
+/**
+ * @swagger
+ * /api/file/upload:
+ *   post:
+ *     summary: Upload files
+ *     description: to upload you have to send with content-type:multipart/form-data 
+ *     responses:
+ *       200:
+ *         description: Retrieve uploaded files
+ */
 router.post('/upload', upload.array('file'), async (req, res) => {
     try {
         if (!req.headers.authorization) {
@@ -57,12 +66,32 @@ router.post('/upload', upload.array('file'), async (req, res) => {
 
 })
 
-
+/**
+ * @swagger
+ * /api/file/all:
+ *   get:
+ *     summary: Get all files
+ *     description: Retrieve a list of all files.
+ *     responses:
+ *       200:
+ *         description: A list of files.
+ */
 router.get('/all', async (req, res) => {
     const files = await File.find().populate('user', '_id username email')
     res.status(200).json(files)
 })
 
+
+/**
+ * @swagger
+ * /api/file/:id:
+ *   get:
+ *     summary: Get one file
+ *     description: Retrieve file.
+ *     responses:
+ *       200:
+ *         description: Retrieve file.
+ */
 router.get('/:id', async (req, res) => {
     const id = Number(req.params.id)
     const file = await File.findById(id).populate('user', '_id username email')
@@ -73,7 +102,16 @@ router.get('/:id', async (req, res) => {
     res.status(200).json(file)
 })
 
-
+/**
+ * @swagger
+ * /api/file/delete/:id:
+ *   delete:
+ *     summary: Delete one file
+ *     description: Delete one file.
+ *     responses:
+ *       200:
+ *         description: Retrieve success message.
+ */
 router.delete('/delete/:id', async (req, res, next) => {
     const id = req.params.id
     if (!req.headers.authorization) {
@@ -95,6 +133,16 @@ router.delete('/delete/:id', async (req, res, next) => {
     res.status(200).json({ message: 'Your file was deleted' })
 })
 
+/**
+ * @swagger
+ * /api/file/edit/:id/file:
+ *   put:
+ *     summary: Update file
+ *     description: Update file.
+ *     responses:
+ *       200:
+ *         description: Retrieve success message.
+ */
 router.put('/edit/:id/file', upload.single('file'), async (req, res, next) => {
     const file = req.file
     const id = req.params.id
@@ -121,6 +169,17 @@ router.put('/edit/:id/file', upload.single('file'), async (req, res, next) => {
     res.status(202).json(updatedFile)
 })
 
+
+/**
+ * @swagger
+ * /api/file/edit/:id/title:
+ *   put:
+ *     summary: Update title of file
+ *     description: Update title of file.
+ *     responses:
+ *       200:
+ *         description: Retrieve success message.
+ */
 router.put('/edit/:id/title', async (req, res, next) => {
     const oldFile = await File.findById(req.params.id)
     if (!oldFile) {

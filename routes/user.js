@@ -5,13 +5,21 @@ import { JWT } from "../utils.js";
 
 const router = Router()
 
-
+/**
+ * @swagger
+ * /api/user/register:
+ *   post:
+ *     summary: Register user
+ *     responses:
+ *       200:
+ *         description: Retrieve token and user
+ */
 router.post('/register', async (req, res) => {
     const user = req.body
 
 
-    if(!user.email || !user.password || !user.username){
-        res.status(400).json({"message": "Username, Email and Password are required fields"})
+    if (!user.email || !user.password || !user.username) {
+        res.status(400).json({ "message": "Username, Email and Password are required fields" })
         return
     }
 
@@ -40,11 +48,21 @@ router.post('/register', async (req, res) => {
     })
 })
 
+
+/**
+ * @swagger
+ * /api/user/login:
+ *   post:
+ *     summary: Login user
+ *     responses:
+ *       200:
+ *         description: Retrieve token and user
+ */
 router.post('/login', async (req, res) => {
     const user = req.body
 
-    if(!user.email || !user.password){
-        res.status(400).json({"message": "Email and Password are required fields"})
+    if (!user.email || !user.password) {
+        res.status(400).json({ "message": "Email and Password are required fields" })
         return
     }
 
@@ -79,8 +97,18 @@ router.post('/login', async (req, res) => {
     })
 })
 
+/**
+ * @swagger
+ * /api/user/login:
+ *   post:
+ *     summary: Get user
+ *     description: To get user to must have token in headers Authorization\nWith format `Token {token}`.
+ *     responses:
+ *       200:
+ *         description: Retrieve token and user
+ */
 router.get('/', async (req, res) => {
-    try{
+    try {
         const token = req.headers.authorization?.replace('Token ', '')
         const result = JWT.decode(String(token))
         const user = await User.findById(result.userId)
@@ -89,8 +117,8 @@ router.get('/', async (req, res) => {
             "email": user?.email,
             "_id": user?._id
         })
-    }catch(error){
-        res.status(400).json({"message": "Xato token yubordiz"})
+    } catch (error) {
+        res.status(400).json({ "message": "Xato token yubordiz" })
     }
 })
 

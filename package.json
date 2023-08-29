@@ -12,6 +12,8 @@
     "jsonwebtoken": "*",
     "mongoose": "*",
     "multer": "*",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
     "uuid": "*"
   },
   "devDependencies": {
@@ -26,7 +28,7 @@
     "typescript": "*"
   },
   "scripts": {
-    "dev": "nodemon ./src/index.js",
+    "dev": "nodemon index.js",
     "start": "node ./src/index.js",
     "build": "yarn"
   },
