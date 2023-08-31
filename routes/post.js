@@ -12,20 +12,46 @@ const BASE_URL = process.env.BASE_URL
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
+
 const router = Router()
 const storage = multer.diskStorage({
     filename: (req, file, callback) => {
         callback(null, uuid4() + "-" + file.originalname)
     },
     destination: function (req, file, callback) {
-        callback(null, path.join(__dirname, '..', '..', 'public'))
+        callback(null, path.join(__dirname, '..', 'public'))
     },
 })
 
 
+const fileFilter = function (req, file, cb) {
+    if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png') {
+        cb(new Error('File type not supported'), false);
+    } else {
+        cb(null, true);
+    }
+};
+
 const upload = multer({
     storage: storage,
+    fileFilter: fileFilter
 })
+
+const uploadFiles = multer({
+    storage: storage,
+    fileFilter: function (req, file, callback) {
+        const allowedTypes = ['image/jpeg', 'image/png', 'video/mp4', 'audio/mpeg', 'audio/wav'];
+
+
+        if (allowedTypes.includes(file.mimetype)) {
+            // Accept the file
+            cb(null, true);
+        } else {
+            cb(new Error('Unsupported file type'), false);
+        }
+    },
+}).array('file')
+
 /**
  * @swagger
  * /api/file/upload:
@@ -36,7 +62,7 @@ const upload = multer({
  *       200:
  *         description: Retrieve uploaded files
  */
-router.post('/upload', upload.array('file'), async (req, res) => {
+router.post('/upload', async (req, res) => {
     try {
         if (!req.headers.authorization) {
             res.status(400).json({ message: 'User not authenticated' })
@@ -45,21 +71,30 @@ router.post('/upload', upload.array('file'), async (req, res) => {
 
         const token = req.headers.authorization.replace('Token ', '')
         let result = JWT.decode(token)
+        uploadFiles(req, res, function (err) {
+            if (err) {
+                res.status(400).json({ "message": "Unsupported file type" })
+            }
+            else {
+                const files = req.files
+                const result2 = files.map(item => ({
+                    title: item.originalname,
+                    src: `${BASE_URL}/${item.filename}`,
+                    type: item.mimetype,
+                    user: result.userId
+                }))
 
-        const files = req.files
-        const result2 = files.map(item => ({
-            title: item.originalname,
-            src: `${BASE_URL}/${item.filename}`,
-            type: item.mimetype,
-            user: result.userId
-        }))
+                const result3 = result2.map(async (item) => {
+                    const newItem = await File.create(item)
+                    console.log(newItem);
+                    return newItem.populate('user', 'username _id email')
+                })
+                res.status(201).json(result3)
+            }
+        });
 
-        const result3 = result2.map(async (item) => {
-            const newItem = await File.create(item)
-            return newItem.populate('user', 'username _id email')
-        })
-        res.status(201).json(result3)
     } catch (error) {
+        console.log(error);
         res.status(400).json({ message: "Wrong token" })
         return
     }
