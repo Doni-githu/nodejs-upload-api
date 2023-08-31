@@ -2,6 +2,8 @@ import { Router } from "express";
 import User from "../schemas/user.js";
 import bcrypt from "bcrypt"
 import { JWT } from "../utils.js";
+import SendMail from "../utils/sender_mail.js"
+import vCode from "../utils/code.js";
 
 const router = Router()
 
@@ -24,8 +26,15 @@ router.post('/register', async (req, res) => {
     }
 
     const areUserEmailHas = await User.findOne({ email: user.email })
+    const isUserUsernameHas = await User.findOne({ username: user.username })
+
     if (areUserEmailHas) {
         res.status(400).json({ message: 'bu elektron pochta allaqachon mavjud' })
+        return
+    }
+
+    if (isUserUsernameHas) {
+        res.status(400).json({ message: "bu username allaqachon mavjud" })
         return
     }
 
@@ -33,19 +42,17 @@ router.post('/register', async (req, res) => {
 
     const userData = {
         ...user,
-        password: hashedPassword
+        password: hashedPassword,
+        verify: false
     }
-
+    const code = vCode()
     const result = await User.create(userData)
-    const token = JWT.encode(result._id)
-    res.status(201).json({
-        "token": token,
-        "user": {
-            "username": result?.username,
-            "email": result?.email,
-            "_id": result?._id
-        }
-    })
+    SendMail(user.email, code)
+        .then(() => {
+            res.status(200).json({ message: "Verification email sent successfully", code: code, id: result._id })
+        }).catch((err) => {
+            res.status(500).json({ message: "Try again" })
+        })
 })
 
 
@@ -68,7 +75,6 @@ router.post('/login', async (req, res) => {
 
     const isExistUser = await User.findOne({ email: user.email })
 
-
     if (!isExistUser) {
         res.status(404).json({
             message: 'Foydalinuvchi topilmadi'
@@ -83,6 +89,19 @@ router.post('/login', async (req, res) => {
         res.status(400).json({
             message: 'Parol xato terilgan'
         })
+        return
+    }
+
+    if (!isExistUser.verify) {
+        const code = vCode()
+        SendMail(isExistUser.email, code)
+            .then((response) => {
+                console.log(response);
+                res.status(200).json({ message: "Verification email sent successfully", code: code, id: isExistUser._id })
+            }).catch((err) => {
+                console.log(err)
+                res.status(500).json({ message: "Try again" })
+            })
         return
     }
 
@@ -122,4 +141,18 @@ router.get('/', async (req, res) => {
     }
 })
 
+
+router.post('/:id', async (req, res) => {
+    const { id } = req.params
+    const newUpdated = await User.findByIdAndUpdate(id, { verify: true }, { new: true })
+    const token = JWT.encode(id)
+    res.status(200).json({
+        "token": token,
+        "user": {
+            "email": newUpdated.email,
+            "username": newUpdated.username,
+            "_id": newUpdated._id
+        }
+    })
+})
 export default router
