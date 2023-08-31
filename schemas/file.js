@@ -1,7 +1,7 @@
 import {Schema, model} from "mongoose"
 
 const FileSchema = new Schema({
-    title: {type: String, required: true},
+    title: {type: String, required: true, unique: true},
     src: {type: String, required: true},
     type: {type: String, required: true},
     user: {type: Schema.Types.ObjectId, ref: "User"}  

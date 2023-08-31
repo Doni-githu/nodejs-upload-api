@@ -71,7 +71,7 @@ router.post('/upload', async (req, res) => {
 
         const token = req.headers.authorization.replace('Token ', '')
         let result = JWT.decode(token)
-        uploadFiles(req, res, function (err) {
+        uploadFiles(req, res, async function (err) {
             if (err) {
                 res.status(400).json({ "message": "Unsupported file type" })
             }
@@ -83,6 +83,20 @@ router.post('/upload', async (req, res) => {
                     type: item.mimetype,
                     user: result.userId
                 }))
+                let i = 0;
+                const messages = []
+                while (i < result2.length) {
+                    const exstingPost = await File.findOne({ title: result2[i].title })
+                    if (exstingPost) {
+                        messages.push(result2[i].title + ": bu title ishlatiliyapti")
+                        continue
+                    }
+                }
+
+                if(messages.length !== 0){
+                    res.status(400).json(messages)
+                    return
+                }
 
                 const result3 = result2.map(async (item) => {
                     const newItem = await File.create(item)
