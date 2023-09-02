@@ -12,7 +12,6 @@ const BASE_URL = process.env.BASE_URL
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-
 const router = Router()
 const storage = multer.diskStorage({
     filename: (req, file, callback) => {
@@ -24,30 +23,20 @@ const storage = multer.diskStorage({
 })
 
 
-const fileFilter = function (req, file, cb) {
-    if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png') {
-        cb(new Error('File type not supported'), false);
+const fileFilter = function (req, file, callback) {
+    const allowedTypes = ['image/jpeg', 'image/png', 'video/mp4', 'audio/mpeg', 'audio/wav'];
+    if (!allowedTypes.includes(file.mimetype)) {
+        callback(null, true);
     } else {
-        cb(null, true);
+        callback(new Error('Unsupported file type'), false);
     }
-};
+}
 
 const upload = multer({
     storage: storage,
     fileFilter: fileFilter
 })
 
-const uploadFiles = multer({
-    storage: storage,
-    fileFilter: function (req, file, callback) {
-        const allowedTypes = ['image/jpeg', 'image/png', 'video/mp4', 'audio/mpeg', 'audio/wav'];
-        if (!allowedTypes.includes(file.mimetype)) {
-            callback(null, true);
-        } else {
-            callback(new Error('Unsupported file type'), false);
-        }
-    },
-}).array('file')
 
 /**
  * @swagger
@@ -59,7 +48,7 @@ const uploadFiles = multer({
  *       200:
  *         description: Retrieve uploaded files
  */
-router.post('/upload', async (req, res, next) => {
+router.post('/upload', upload.array('file'), async (req, res) => {
     try {
         if (!req.headers.authorization) {
             res.status(400).json({ message: 'User not authenticated' })
@@ -68,42 +57,34 @@ router.post('/upload', async (req, res, next) => {
 
         const token = req.headers.authorization.replace('Token ', '')
         let result = JWT.decode(token)
-        uploadFiles(req, res, async function (err) {
-            if (err) {
-                res.status(400).json({ "message": "Unsupported file type" })
-                next()
-                return
-            } else {
-                const files = req.files
-                console.log(req.files);
-                const result2 = files.map(item => ({
-                    title: item.originalname,
-                    src: `http://localhost:8000/${item.filename}`,
-                    type: item.mimetype,
-                    user: result.userId
-                }))
-                const messages = []
-                for (let i = 0; i < result2.length; i++) {
-                    const element = result2[i];
-                    const existingPost = await File.findOne({ title: element.title })
-                    if (existingPost) {
-                        messages.push(element.title + " : bu file allachon bor")
-                    }
-                }
-
-                if (messages.length !== 0) {
-                    res.status(400).json(messages)
-                }
-                const newData = []
-                for (let i = 0; i < result2.length; i++) {
-                    const element = result2[i];
-                    const newFile = await File.create(element)
-                    newData.push(newFile)
-                }
-                res.status(201).json(newData)
+        const files = req.files
+        const result2 = files.map(item => ({
+            title: item.originalname,
+            src: `http://localhost:8000/${item.filename}`,
+            type: item.mimetype,
+            user: result.userId
+        }))
+        const messages = []
+        for (let i = 0; i < result2.length; i++) {
+            const element = result2[i];
+            const existingPost = await File.findOne({ title: element.title })
+            if (existingPost) {
+                messages.push(element.title + " : bu file allachon bor")
             }
-        });
+        }
+
+        if (messages.length !== 0) {
+            res.status(400).json(messages)
+        }
+        const newData = []
+        for (let i = 0; i < result2.length; i++) {
+            const element = result2[i];
+            const newFile = await File.create(element)
+            newData.push(newFile)
+        }
+        res.status(201).json(newData)
     } catch (error) {
+        console.log(error);
         res.status(400).json({ message: "Some things went to wrong" })
         return
     }
@@ -137,13 +118,14 @@ router.get('/all', async (req, res) => {
  *         description: Retrieve file.
  */
 router.get('/:id', async (req, res) => {
-    const id = Number(req.params.id)
-    const file = await File.findById(id).populate('user', '_id username email')
-    if (!file) {
-        res.status(404).json({ message: "File not found" })
-        return
+    const id = req.params.id
+    try {
+        const file = await File.findById(id).populate('user', '_id username email verify')
+        res.status(200).json(file)
+    }catch(error) {
+        console.log(error);
+        res.status(500).json({message:'Some thing went to wrong'})
     }
-    res.status(200).json(file)
 })
 
 /**
@@ -255,7 +237,7 @@ router.put('/like/:id', async (req, res) => {
     const oldFile = await File.findById(id)
     const file = await File.findByIdAndUpdate(id, {
         like: oldFile.like + 1
-    })
+    }, { new: true })
     res.status(200).json(file)
 })
 
@@ -274,7 +256,7 @@ router.put('/unlike/:id', async (req, res) => {
     const oldFile = await File.findById(id)
     const file = await File.findByIdAndUpdate(id, {
         like: oldFile.like - 1
-    })
+    }, { new: true })
     res.status(200).json(file)
 })
 
@@ -295,10 +277,10 @@ router.get('/dowload/:id', async (req, res) => {
         return
     }
     const file = await File.findByIdAndUpdate(id, {
-        like: oldFile.dowloads + 1
-    })
+        dowloads: oldFile.dowloads + 1
+    }, { new: true })
 
-    const path = file.src.replace('http://localhost:8000/', '')
+    const path = "public" + "\\" + file.src.replace('http://localhost:8000/', '')
     res.download(path, (error) => {
         console.log(error);
     })

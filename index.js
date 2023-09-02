@@ -13,6 +13,7 @@ const app = express()
 
 
 app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
 app.use(express.static("public"))
 app.use(cors({
     origin: '*',
@@ -26,7 +27,7 @@ app.use('/api/user', UserRoutes)
 app.use('/api/file', FileRoutes)
 
 function Run() {
-    mongoose.connect(String(process.env.MONGO_URI))
+    mongoose.connect(String(process.env.MONGO_URI_LOCAL))
         .then((res) => console.log('Mongo DB connted'))
         .catch((errr) => console.log(errr))
     const PORT = process.env.PORT ?? 8000
