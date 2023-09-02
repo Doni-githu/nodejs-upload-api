@@ -26,7 +26,7 @@ app.use('/api/user', UserRoutes)
 app.use('/api/file', FileRoutes)
 
 function Run() {
-    mongoose.connect(String(process.env.MONGO_URI_LOCAL))
+    mongoose.connect(String(process.env.MONGO_URI))
         .then((res) => console.log('Mongo DB connted'))
         .catch((errr) => console.log(errr))
     const PORT = process.env.PORT ?? 8000
