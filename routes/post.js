@@ -75,13 +75,7 @@ router.post('/upload', async (req, res, next) => {
                 return
             } else {
                 const files = req.files
-                if (!files) {
-                    await new Promise((resolve) => {
-                        setTimeout(() => {
-                            resolve()
-                        }, 1400)
-                    })
-                }
+                console.log(req.files);
                 const result2 = files.map(item => ({
                     title: item.originalname,
                     src: `http://localhost:8000/${item.filename}`,
