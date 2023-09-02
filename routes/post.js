@@ -75,6 +75,13 @@ router.post('/upload', async (req, res, next) => {
                 return
             } else {
                 const files = req.files
+                if (!files) {
+                    await new Promise((resolve) => {
+                        setTimeout(() => {
+                            resolve()
+                        }, 1400)
+                    })
+                }
                 const result2 = files.map(item => ({
                     title: item.originalname,
                     src: `http://localhost:8000/${item.filename}`,
@@ -103,8 +110,7 @@ router.post('/upload', async (req, res, next) => {
             }
         });
     } catch (error) {
-        console.log(error);
-        res.status(400).json({ message: "Wrong token" })
+        res.status(400).json({ message: "Some things went to wrong" })
         return
     }
 
@@ -168,7 +174,7 @@ router.delete('/delete/:id', async (req, res, next) => {
         return
     }
     let pathToFile = String(oldFile?.src.replace(`http://localhost:8000/`, ''))
-    fs.rm(path.join(__dirname,'..', 'public', pathToFile), (error,) => {
+    fs.rm(path.join(__dirname, '..', 'public', pathToFile), (error,) => {
         if (error) {
             console.log(error);
         }
@@ -290,8 +296,8 @@ router.put('/unlike/:id', async (req, res) => {
 router.get('/dowload/:id', async (req, res) => {
     const id = req.params.id
     const oldFile = await File.findById(id)
-    if(!oldFile){
-        res.status(404).json({message: 'file not found'})
+    if (!oldFile) {
+        res.status(404).json({ message: 'file not found' })
         return
     }
     const file = await File.findByIdAndUpdate(id, {
