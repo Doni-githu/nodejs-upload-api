@@ -16,7 +16,7 @@ const __dirname = dirname(__filename)
 const router = Router()
 const storage = multer.diskStorage({
     filename: (req, file, callback) => {
-        callback(null, uuid4() + "-" + file.originalname)
+        callback(null, uuid4() + path.extname(file.originalname))
     },
     destination: function (req, file, callback) {
         callback(null, path.join(__dirname, '..', 'public'))
@@ -41,13 +41,10 @@ const uploadFiles = multer({
     storage: storage,
     fileFilter: function (req, file, callback) {
         const allowedTypes = ['image/jpeg', 'image/png', 'video/mp4', 'audio/mpeg', 'audio/wav'];
-
-
-        if (allowedTypes.includes(file.mimetype)) {
-            // Accept the file
-            cb(null, true);
+        if (!allowedTypes.includes(file.mimetype)) {
+            callback(null, true);
         } else {
-            cb(new Error('Unsupported file type'), false);
+            callback(new Error('Unsupported file type'), false);
         }
     },
 }).array('file')
@@ -62,7 +59,7 @@ const uploadFiles = multer({
  *       200:
  *         description: Retrieve uploaded files
  */
-router.post('/upload', async (req, res) => {
+router.post('/upload', async (req, res, next) => {
     try {
         if (!req.headers.authorization) {
             res.status(400).json({ message: 'User not authenticated' })
@@ -74,39 +71,37 @@ router.post('/upload', async (req, res) => {
         uploadFiles(req, res, async function (err) {
             if (err) {
                 res.status(400).json({ "message": "Unsupported file type" })
-            }
-            else {
+                next()
+                return
+            } else {
                 const files = req.files
                 const result2 = files.map(item => ({
                     title: item.originalname,
-                    src: `${BASE_URL}/${item.filename}`,
+                    src: `http://localhost:8000/${item.filename}`,
                     type: item.mimetype,
                     user: result.userId
                 }))
-                let i = 0;
                 const messages = []
-                while (i < result2.length) {
-                    const exstingPost = await File.findOne({ title: result2[i].title })
-                    if (exstingPost) {
-                        messages.push(result2[i].title + ": bu title ishlatiliyapti")
-                        continue
+                for (let i = 0; i < result2.length; i++) {
+                    const element = result2[i];
+                    const existingPost = await File.findOne({ title: element.title })
+                    if (existingPost) {
+                        messages.push(element.title + " : bu file allachon bor")
                     }
                 }
 
-                if(messages.length !== 0){
+                if (messages.length !== 0) {
                     res.status(400).json(messages)
-                    return
                 }
-
-                const result3 = result2.map(async (item) => {
-                    const newItem = await File.create(item)
-                    console.log(newItem);
-                    return newItem.populate('user', 'username _id email')
-                })
-                res.status(201).json(result3)
+                const newData = []
+                for (let i = 0; i < result2.length; i++) {
+                    const element = result2[i];
+                    const newFile = await File.create(element)
+                    newData.push(newFile)
+                }
+                res.status(201).json(newData)
             }
         });
-
     } catch (error) {
         console.log(error);
         res.status(400).json({ message: "Wrong token" })
@@ -126,7 +121,7 @@ router.post('/upload', async (req, res) => {
  *         description: A list of files.
  */
 router.get('/all', async (req, res) => {
-    const files = await File.find().populate('user', '_id username email')
+    const files = await File.find().populate('user')
     res.status(200).json(files)
 })
 
@@ -172,8 +167,8 @@ router.delete('/delete/:id', async (req, res, next) => {
         res.status(404).json({ message: "File not found" })
         return
     }
-    let pathToFile = String(oldFile?.src.replace(`${BASE_URL}/`, ''))
-    fs.rm(path.join(__dirname, '..', '..', 'public', pathToFile), (error,) => {
+    let pathToFile = String(oldFile?.src.replace(`http://localhost:8000/`, ''))
+    fs.rm(path.join(__dirname,'..', 'public', pathToFile), (error,) => {
         if (error) {
             console.log(error);
         }
@@ -181,7 +176,6 @@ router.delete('/delete/:id', async (req, res, next) => {
     const file = await File.findByIdAndRemove(id, { new: true })
     res.status(200).json({ message: 'Your file was deleted' })
 })
-
 /**
  * @swagger
  * /api/file/edit/:id/file:
@@ -193,6 +187,7 @@ router.delete('/delete/:id', async (req, res, next) => {
  *         description: Retrieve success message.
  */
 router.put('/edit/:id/file', upload.single('file'), async (req, res, next) => {
+
     const file = req.file
     const id = req.params.id
     if (!req.headers.authorization) {
@@ -204,8 +199,8 @@ router.put('/edit/:id/file', upload.single('file'), async (req, res, next) => {
         res.status(404).json({ message: "File not found" })
         return
     }
-    const pathToFile = String(oldFile?.src.replace(`${BASE_URL}/`, ''))
-    fs.rm(path.join(__dirname, '..', '..', 'public', pathToFile), (error) => {
+    const pathToFile = String(oldFile?.src.replace(`http://localhost:8000/`, ''))
+    fs.rm(path.join(__dirname, '..', 'public', pathToFile), (error) => {
         if (error) {
             console.log(error);
         }
@@ -221,13 +216,13 @@ router.put('/edit/:id/file', upload.single('file'), async (req, res, next) => {
 
 /**
  * @swagger
- * /api/file/edit/:id/title:
+ * /api/file/edit/{id}/title:
  *   put:
- *     summary: Update title of file
- *     description: Update title of file.
- *     responses:
- *       200:
- *         description: Retrieve success message.
+ *     description: Get all Employee by Email 
+ *     responses:Update title of file:
+ *         200:
+ *            description: Get all Employee by Email 
+ * 
  */
 router.put('/edit/:id/title', async (req, res, next) => {
     const oldFile = await File.findById(req.params.id)
@@ -246,5 +241,67 @@ router.put('/edit/:id/title', async (req, res, next) => {
     res.status(202).json(updatedFile)
 })
 
+/**
+ * @swagger
+ * /api/file/like/{id}:
+ *   post:
+ *     summary: Like file
+ *     responses:
+ *       200:
+ *         description: Retrieve liked file
+ */
+router.put('/like/:id', async (req, res) => {
+    const id = req.params.id
+    const oldFile = await File.findById(id)
+    const file = await File.findByIdAndUpdate(id, {
+        like: oldFile.like + 1
+    })
+    res.status(200).json(file)
+})
+
+
+/**
+ * @swagger
+ * /api/file/unlike/{id}:
+ *   post:
+ *     summary: UnLike file
+ *     responses:
+ *       200:
+ *         description: Retrieve UnLiked file
+ */
+router.put('/unlike/:id', async (req, res) => {
+    const id = req.params.id
+    const oldFile = await File.findById(id)
+    const file = await File.findByIdAndUpdate(id, {
+        like: oldFile.like - 1
+    })
+    res.status(200).json(file)
+})
+
+/**
+ * @swagger
+ * /api/file/dowload/{id}:
+ *   post:
+ *     summary: Dowload file
+ *     responses:
+ *       200:
+ *         description: Retrieve Dowload file
+ */
+router.get('/dowload/:id', async (req, res) => {
+    const id = req.params.id
+    const oldFile = await File.findById(id)
+    if(!oldFile){
+        res.status(404).json({message: 'file not found'})
+        return
+    }
+    const file = await File.findByIdAndUpdate(id, {
+        like: oldFile.dowloads + 1
+    })
+
+    const path = file.src.replace('http://localhost:8000/', '')
+    res.download(path, (error) => {
+        console.log(error);
+    })
+})
 
 export default router
